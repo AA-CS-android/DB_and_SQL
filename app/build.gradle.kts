@@ -4,7 +4,7 @@ plugins {
 
 android {
     namespace = "com.hw.bd_and_sql"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.hw.bd_and_sql"
