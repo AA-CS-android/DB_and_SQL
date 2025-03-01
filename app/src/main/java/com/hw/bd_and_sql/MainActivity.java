@@ -12,6 +12,7 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
@@ -29,9 +30,8 @@ public class MainActivity extends AppCompatActivity {
 
     private SQLiteDatabase db;
     private HelperDB hlp;
-    private ArrayList<String> namesList;
     private ArrayList<User> users;
-    private ArrayAdapter adp;
+    private UserAdapter adp;
     private User tmpUser;
     private int key_id;
 
@@ -42,6 +42,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         init();
+        addPerson.setOnClickListener(v -> addUser());
     }
 
     void init()
@@ -61,10 +62,9 @@ public class MainActivity extends AppCompatActivity {
         db.close();
 
         users = new ArrayList<>();
-        namesList = new ArrayList<>();
-        namesList.add("Choose a user: ");
-        key_id =0;
+        key_id = 0;
         db = hlp.getReadableDatabase();
+
         Cursor crsr = db.query(TABLE_USERS,null,null,null,null,null,null);
         int colKEY_ID = crsr.getColumnIndex(Users.KEY_ID);
         int colName = crsr.getColumnIndex(Users.NAME);
@@ -79,14 +79,49 @@ public class MainActivity extends AppCompatActivity {
             tmpUser.setAge(crsr.getInt(colAge));
             tmpUser.setPassword(crsr.getString(colPass));
             users.add(tmpUser);
-            namesList.add(tmpUser.getName());
             crsr.moveToNext();
         }
         crsr.close();
         db.close();
-        adp = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, namesList);
+        adp = new UserAdapter(this, users);
         listViewUsers.setAdapter(adp);
+        ((UserAdapter) listViewUsers.getAdapter()).notifyDataSetChanged();
     }
 
+    void addUser()
+    {
+        String name, pass, strAge;
+        int age;
+        name = etName.getText().toString();
+        pass = etPass.getText().toString();
+        strAge = etAge.getText().toString();
+        if(name.isEmpty() || pass.isEmpty() || strAge.isEmpty()) {
+            Toast.makeText(this, "One of the fields is missing!", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        age = Integer.parseInt(strAge);
+        tmpUser = new User(name,pass,age);
 
+        ContentValues cv = new ContentValues();
+        cv.put(Users.NAME, tmpUser.getName());
+        cv.put(Users.PASSWORD, tmpUser.getPassword());
+        cv.put(Users.AGE, tmpUser.getAge());
+
+        db = hlp.getWritableDatabase();
+        key_id = (int) db.insert(TABLE_USERS, null, cv);
+        db.close();
+
+        etPass.setText("");
+        etAge.setText("");
+        etName.setText("");
+
+        if(key_id != -1)
+        {
+            Toast.makeText(this, "Data pushed to Users table", Toast.LENGTH_LONG).show();
+            tmpUser.setKey_id(key_id);
+            users.add(tmpUser);
+
+            ((UserAdapter) listViewUsers.getAdapter()).notifyDataSetChanged();
+        }
+    }
 }
